@@ -1,0 +1,10 @@
+LDX  1
+LDA  2
+TD   3
+JEQ  4
+RD   5
+COMP 6
+STCH 7
+TIX  8
+JLT  9
+STX  10
