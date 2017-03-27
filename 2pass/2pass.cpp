@@ -5,6 +5,7 @@
 #include<string>
 #include<fstream>
 #include<cstdlib>
+#include<cstring>
 #include<iomanip>
 using namespace std;
 
@@ -58,6 +59,28 @@ int searchoptab(string key){
         }
         return -1;
 }
+int constlen(string key){
+	int pos=0;
+	if (key[pos++]=='X'){
+		if(key[pos]=='\''){
+			pos++;
+			while(key[pos]!='\''){
+				pos++;
+			}
+			pos-=3;
+		}
+		else{
+			cout<<"Error invalid constant assigned to BYTE";
+			return -1;
+		}
+		return pos;
+	}
+	//else for future elaboration.
+	return key.length();
+}
+		
+		
+		
 
 int pass1(){
         ifstream f1;
@@ -99,7 +122,11 @@ int pass1(){
                 else if(opcode==("RESB"))
                         locctr+=atoi(operand);
                 else if(opcode==("BYTE"))
-                        {}// fill in later
+                        {if(constlen(operand)!=-1)
+				locctr+=constlen(operand);
+			 else
+				return 0;
+			}// fill in later
                 else {
                         cout<<"ERROR OPCODE NOT FOUND";
                         return 0;
@@ -114,9 +141,9 @@ int pass1(){
          f2.close();
         }
 
-int p;
+int p;int TRlen =0;
 void initTRecord(ifstream &f1,ofstream &f2){
-	f2<<"T "<<setw(6)<<setfill('0')<<hex<<locctr<<" "	;
+	f2<<endl<<"T "<<setw(6)<<setfill('0')<<hex<<locctr<<" "	;
 	p=f2.tellp();
 	f2<<"00 ";	
 }
@@ -126,12 +153,12 @@ int pass2(){
 	f1.open("intermediate");	
         f2.open("target");
 	f1>>hex>>locctr>>label>>opcode>>hex>>startaddr;
-	f2<<"H "<<label<<" "<<hex<<startaddr<<" "<<hex<<programlength<<endl;
+	f2<<"H "<<label<<" "<<setw(6)<<setfill('0')<<hex<<startaddr<<" "<<setw(6)<<setfill('0')<<hex<<programlength;
 	f1>>hex>>locctr>>label>>opcode>>operand;
  	initTRecord(f1,f2);
 	while(opcode!="END"){
 		if(searchoptab(opcode)!=-1){
-			f2<<setw(2)<<setfill('0')<<searchoptab(opcode);
+			f2<<setw(2)<<setfill('0')<<searchoptab(opcode);TRlen+=3;
 			if(operand!=""){
 				if(searchsymtab(operand)!=-1){
 					f2<<setw(4)<<setfill('0')<<searchsymtab(operand)<<" ";
@@ -142,8 +169,49 @@ int pass2(){
 					}
 			}
 		}
-		f1>>hex>>locctr>>label>>opcode>>operand;
+		else if(opcode=="WORD"){
+			f2<<setw(6)<<setfill('0')<<dec<<atoi(operand)<<" ";
+			TRlen+=3;
+		}
+		else if(opcode=="BYTE"){
+			if(operand[0]='X'){
+				f2<<operand[2]<<operand[3]<<" ";
+				TRlen+=2;
+			}
+			else{
+				f2<<operand<<" ";
+				TRlen+=strlen(operand);
+			}
+	
+		}
+		else if(opcode=="RESW"||opcode=="RESB"){
+			int c=f2.tellp();
+			f2.seekp(p);
+			f2<<setw(2)<<setfill('0')<<hex<<TRlen;
+			f2.seekp(c);
+			TRlen=0;
+			while(opcode=="RESW"||opcode=="RESB"){
+				f1>>hex>>locctr>>label>>opcode>>operand;
+			}
+			if(opcode!="END")
+				initTRecord(f1,f2);
+			continue;
+		}
+					
+		f1>>hex>>locctr>>label>>opcode>>operand;//read next record;
+
+		if(TRlen>=12||opcode=="END"){
+			int c=f2.tellp();
+			f2.seekp(p);
+			f2<<setw(2)<<setfill('0')<<hex<<TRlen;
+			f2.seekp(c);
+			TRlen=0;
+			if(opcode!="END"){
+				initTRecord(f1,f2);
+			}
+		}
 	}
+	f2<<endl<<"E "<<setw(6)<<setfill('0')<<hex<<startaddr;
 					
 
 }
