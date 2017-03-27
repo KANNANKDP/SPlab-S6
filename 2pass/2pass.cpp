@@ -4,7 +4,8 @@
 #include<iostream>
 #include<string>
 #include<fstream>
-
+#include<cstdlib>
+#include<iomanip>
 using namespace std;
 
 string opcode;
@@ -57,16 +58,12 @@ int searchoptab(string key){
         }
         return -1;
 }
-void initTRecord(ifstream &f1,ofstream &f2){
-
-}
 
 int pass1(){
         ifstream f1;
         ofstream f2;
         f1.open("source5");
         f2.open("intermediate");
-        optabgen();
         f1>>label;
         f1>>opcode;
         if (opcode=="START"){
@@ -112,17 +109,53 @@ int pass1(){
                 f1>>operand;
                 }
          f2<<hex<<locctr<<"  "<<label<<"  "<<opcode<<"  "<<operand<<endl;
-         programlength=locctr;
+         programlength=locctr-startaddr;
          f1.close();
          f2.close();
- f1.open("intermediate");
-         f2.open("target");
         }
 
+int p;
+void initTRecord(ifstream &f1,ofstream &f2){
+	f2<<"T "<<setw(6)<<setfill('0')<<hex<<locctr<<" "	;
+	p=f2.tellp();
+	f2<<"00 ";	
+}
+int pass2(){
+	ifstream f1;
+	ofstream f2;	
+	f1.open("intermediate");	
+        f2.open("target");
+	f1>>hex>>locctr>>label>>opcode>>hex>>startaddr;
+	f2<<"H "<<label<<" "<<hex<<startaddr<<" "<<hex<<programlength<<endl;
+	f1>>hex>>locctr>>label>>opcode>>operand;
+ 	initTRecord(f1,f2);
+	while(opcode!="END"){
+		if(searchoptab(opcode)!=-1){
+			f2<<setw(2)<<setfill('0')<<searchoptab(opcode);
+			if(operand!=""){
+				if(searchsymtab(operand)!=-1){
+					f2<<setw(4)<<setfill('0')<<searchsymtab(operand)<<" ";
+					}
+				else{
+					cout<<"undefined symbol";
+						return -1;
+					}
+			}
+		}
+		f1>>hex>>locctr>>label>>opcode>>operand;
+	}
+					
 
-/*input
+}
+int main(){
+	optabgen();
+	if(pass1()==-1)
+		return 0;
+	else if(pass2()==-1)
+		return 0;
+	else
+		return 1;
+				
+	}
 
 
-
-
-*/
