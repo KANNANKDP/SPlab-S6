@@ -1,0 +1,7 @@
+
+read    ip,buf
+0   td   postnot0
+0   jeq   read
+0   rd   postnot0
+0   stch   postnot1
+0   mend   read
